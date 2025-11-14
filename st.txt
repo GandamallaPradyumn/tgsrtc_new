@@ -1,0 +1,127 @@
+Folder PATH listing for volume OS
+Volume serial number is 28D9-ED81
+C:.
+¦   action_plan.py
+¦   admin.py
+¦   auth.py
+¦   config.json
+¦   db_config.py
+¦   depot_dashboard_dm.py
+¦   depot_dashboard_rm.py
+¦   depot_list.py
+¦   driver_dashboard_DM.py
+¦   driver_dashboard_logo.png
+¦   driver_dashboard_logo1.png
+¦   driver_dashboard_RM.py
+¦   edit_sheet.py
+¦   eight_ratios_DM.py
+¦   eight_ratios_RM.py
+¦   Input_Data_DM.py
+¦   Input_Data_RM.py
+¦   login.py
+¦   LOGO.png
+¦   models.py
+¦   pending.py
+¦   Ratios_DM.py
+¦   Ratios_RM.py
+¦   st.txt
+¦   upload_tables.py
+¦   __init__.py
+¦   
++---.streamlit
++---ETL
+¦   ¦   Etl_main.py
+¦   ¦   utils.py
+¦   ¦   __init__.py
+¦   ¦   
+¦   +---__pycache__
+¦           utils.cpython-313.pyc
+¦           
++---sheets
+¦       2023AB.csv
+¦       all regs mbnr (01-04,30-09-2025).csv
+¦       Book1.csv
+¦       Book2.csv
+¦       driver_details1.csv
+¦       ghc_2024u.csv
+¦       hcu_ghc_2024.csv
+¦       hyd re.csv
+¦       HYD REG.csv
+¦       KRMR.csv
+¦       lsa2024.csv
+¦       lsa2025.csv
+¦       MBNR2023.csv
+¦       MBNR20241.csv
+¦       MBNR20242.csv
+¦       MBNR20251.csv
+¦       mbnr_service.csv
+¦       mdk.csv
+¦       MDK_DRV.csv
+¦       operations_adb.csv
+¦       operations_kmm.csv
+¦       operations_MBNR.csv
+¦       operations_MBNR1.csv
+¦       operations_nlg.csv
+¦       operations_nzb.csv
+¦       operations_rr.csv
+¦       operations_sr.csv
+¦       operations_sr1.csv
+¦       operations_WL.csv
+¦       predictive.csv
+¦       service_hyd.csv
+¦       service_master_adb.csv
+¦       service_master_kmm.csv
+¦       service_master_krmr.csv
+¦       service_master_KSG.csv
+¦       service_master_mdk.csv
+¦       service_master_nlg.csv
+¦       service_master_nzb.csv
+¦       service_master_rr.csv
+¦       service_master_sr.csv
+¦       service_master_wl.csv
+¦       WL1.csv
+¦       WL2.csv
+¦       WL3.csv
+¦       
++---__pycache__
+        action_plan.cpython-311.pyc
+        action_plan.cpython-313.pyc
+        admin.cpython-311.pyc
+        admin.cpython-313.pyc
+        auth.cpython-311.pyc
+        auth.cpython-313.pyc
+        DATA_INPUT.cpython-313.pyc
+        DATA_INPUT1.cpython-311.pyc
+        db_config.cpython-313.pyc
+        depot_dashboard_dm.cpython-311.pyc
+        depot_dashboard_dm.cpython-313.pyc
+        depot_dashboard_rm.cpython-311.pyc
+        depot_dashboard_rm.cpython-313.pyc
+        depot_list.cpython-311.pyc
+        depot_list.cpython-313.pyc
+        driver_dashboard_DM.cpython-311.pyc
+        driver_dashboard_DM.cpython-313.pyc
+        driver_dashboard_RM.cpython-311.pyc
+        driver_dashboard_RM.cpython-313.pyc
+        edit_sheet.cpython-311.pyc
+        edit_sheet.cpython-313.pyc
+        eight_ratios.cpython-311.pyc
+        eight_ratios.cpython-313.pyc
+        eight_ratios_DM.cpython-311.pyc
+        eight_ratios_DM.cpython-313.pyc
+        eight_ratios_RM.cpython-311.pyc
+        eight_ratios_RM.cpython-313.pyc
+        Input_Data_DM.cpython-311.pyc
+        Input_Data_DM.cpython-313.pyc
+        Input_Data_RM.cpython-311.pyc
+        Input_Data_RM.cpython-313.pyc
+        models.cpython-313.pyc
+        pending.cpython-311.pyc
+        pending.cpython-313.pyc
+        Ratios.cpython-311.pyc
+        Ratios.cpython-313.pyc
+        Ratios_DM.cpython-311.pyc
+        Ratios_DM.cpython-313.pyc
+        Ratios_RM.cpython-311.pyc
+        Ratios_RM.cpython-313.pyc
+        

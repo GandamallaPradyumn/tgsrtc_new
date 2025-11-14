@@ -1,0 +1,271 @@
+{
+  "db": {
+    "host": "localhost",
+    "user": "root",
+    "password": "12345",
+    "database": "tgsrtc_new"
+    },
+    "logo_path": "LOGO.png",
+  
+ 
+  "db_columns": [
+              "depot_name","data_date",  
+                "Schedules", "Schedules_Services", "Schedules_Kms",
+                "Planned_Schedules", "Planned_Services", "Planned_KM",
+                "Actual_Services", "Actual_KM", "Service_Variance", "KM_Variance",
+                "Total_Drivers", "Medically_Unfit", "Suspended_Drivers",
+                "Available_Drivers_1", "Pct_Available_Drivers_1",
+                "Weekly_Off_National_Off", "Pct_Weekly_Off_National_Off",
+                "Special_Off_Night_Out_IC_Online", "Pct_Special_Off_Night_Out_IC_Online",
+                "Training_PME_medical", "Others", "Pct_Others",
+                "Leave_Absent", "Pct_Leave_Absent", "Sick_Leave", "Pct_Sick_Leave",
+                "Available_Drivers_2", "Pct_Available_Drivers_2",
+                "Spot_Absent", "Pct_Spot_Absent", "Attending_Drivers", "Pct_Attending_Drivers",
+                "Drivers_Required", "Driver_Schedule", "Driver_Shortage",
+                "Double_Duty", "Pct_Double_Duty", "Off_Cancellation", "Pct_Off_Cancellation",
+                "Drivers_as_Conductors", "Drivers_on_Duty", "Driver_for_Bus_Services",
+                "KM_per_Driver", "Service_per_Driver_Check",
+                "Spondilitis", "Spinal_Disc", "Vision_Color_Blindness", "Neuro_Paralysis_Medical",
+                "Ortho", "Total_Drivers_MU_Reasons", "Diff_MU_Reasons",
+                "Flu_Fever", "BP", "Orthopedic", "Heart", "Weakness", "Eye",
+                "Accident_Injuries", "Neuro_Paralysis_Sick_Leave", "Piles", "Diabetes",
+                "Thyroid", "Gas", "Dental", "Ear", "Skin_Allergy", "General_Surgery",
+                "Obesity", "Cancer", "Total_Drivers_SL_Reasons", "Diff_SL_Reasons"
+  ],
+  "category_to_column": {
+            "Schedules":"Schedules",
+        "Schedules Services": "Schedules_Services",
+        "Schedules Kms":"Schedules_Kms",
+        "Planned Schedules" :"Planned_Schedules" ,
+        "Planned Services":"Planned_Services",
+        "Planned KM" : "Planned_KM",
+        "Actual Services" : "Actual_Services",
+        "Actual KM" : "Actual_KM",
+        "Service Variance": "Service_Variance",
+        "KM Variance": "KM_Variance",
+        "Total Drivers":"Total_Drivers",
+        "Medically Unfit": "Medically_Unfit",
+        "Suspended Drivers":"Suspended_Drivers",
+        "Available Drivers-1": "Available_Drivers_1",
+        "% Available Drivers-1" : "Pct_Available_Drivers_1",
+        "Weekly Off & National Off" : "Weekly_Off_National_Off",
+        "% Weekly Off & National Off" : "Pct_Weekly_Off_National_Off",
+        "Special Off (Night Out/IC, Online)":"Special_Off_Night_Out_IC_Online",
+        "% Special Off (Night Out/IC, Online)": "Pct_Special_Off_Night_Out_IC_Online",
+        "Others (SDI, DGT, LO, Parking,<br>Relief Van,Depot Spare,<br> Cargo, Releaving duty)" : "Others",
+        "Training, PME(medical)":"Training_PME_medical",
+        "% Others":"Pct_Others",
+        "Leave & Absent":"Leave_Absent",
+        "% Leave & Absent" :"Pct_Leave_Absent",
+        "Sick Leave":"Sick_Leave",
+        "% Sick Leave":"Pct_Sick_Leave",
+        "Available Drivers-2": "Available_Drivers_2",
+        "% Available Drivers-2":"Pct_Available_Drivers_2",
+        "Spot Absent":"Spot_Absent",
+        "% Spot Absent":"Pct_Spot_Absent",
+        "Attending Drivers":"Attending_Drivers",
+        "% Attending Drivers":"Pct_Attending_Drivers",
+        "Drivers Required":"Drivers_Required",
+        "Driver schedule":"Driver_Schedule", 
+        "Driver shortage": "Driver_Shortage",
+        "Double Duty":"Double_Duty",
+        "% Double Duty":"Pct_Double_Duty",
+        "Off Cancellation":"Off_Cancellation",
+        "% Off Cancellation":"Pct_Off_Cancellation",
+        "Drivers as Conductors":"Drivers_as_Conductors",
+        "Drivers on Duty":"Drivers_on_Duty",
+        "Driver for Bus Services":"Driver_for_Bus_Services",
+        "KM/Driver" :"KM_per_Driver",
+        "Service/Driver Check":"Service_per_Driver_Check",
+        "Spondilitis":"Spondilitis",
+        "Spinal Disc":"Spinal_Disc",
+        "Vision/Color Blindness":"Vision_Color_Blindness",
+        "Neuro/Paralysis (Medical)":"Neuro_Paralysis_Medical",
+        "Ortho" :"Ortho",
+        "Total Drivers (MU Reasons)":"Total_Drivers_MU_Reasons",
+        "Diff (MU Reasons)":"Diff_MU_Reasons",
+        "Flu/Fever":"Flu_Fever",
+        "BP":"BP",
+        "Orthopedic":"Orthopedic",
+        "Heart":"Heart",
+        "Weakness":"Weakness",
+        "Eye":"Eye",
+        "Accident/Injuries":"Accident_Injuries",
+        "Neuro/Paralysis (Sick Leave)":"Neuro_Paralysis_Sick_Leave",
+        "Piles":"Piles",
+        "Diabetes":"Diabetes",
+        "Thyroid":"Thyroid",
+        "Gas":"Gas",
+        "Dental":"Dental",
+        "Ear":"Ear",
+        "Skin/Allergy":"Skin_Allergy",
+        "General Surgery":"General_Surgery",
+        "Obesity":"Obesity",
+        "Cancer":"Cancer",
+        "Total Drivers (SL Reasons)":"Total_Drivers_SL_Reasons",
+        "Diff (SL Reasons)":"Diff_SL_Reasons"
+  },
+  "category_rows": [
+    "---SCHEDULES---",
+        "Schedules",
+        "Schedules Services",
+        "Schedules Kms",
+        "Planned Schedules",
+        "Planned Services",
+        "Planned KM",
+        "Actual Services",
+        "Actual KM",
+        "Service Variance", 
+        "KM Variance",      
+        "--- DRIVERS ---",
+        "Total Drivers", "Medically Unfit", "Suspended Drivers", "Available Drivers-1",
+        "% Available Drivers-1", "Weekly Off & National Off", "% Weekly Off & National Off",
+        "Special Off (Night Out/IC, Online)", "% Special Off (Night Out/IC, Online)",
+        "Others (SDI, DGT, LO, Parking,<br>Relief Van,Depot Spare,<br> Cargo, Releaving duty)",
+        "Training, PME(medical)",
+        "% Others",
+        "Leave & Absent", "% Leave & Absent", "Sick Leave", "% Sick Leave",
+        "Available Drivers-2", "% Available Drivers-2",
+        "Spot Absent", "% Spot Absent", "Attending Drivers", "% Attending Drivers",
+        "Drivers Required", "Driver schedule", 
+        "Driver shortage",
+        "Double Duty", "% Double Duty", "Off Cancellation", "% Off Cancellation",
+        "Drivers as Conductors", "Drivers on Duty", "Driver for Bus Services",
+        "KM/Driver", "Service/Driver Check",
+        "--- Medically Unfit - Reasons ---",
+        "Spondilitis", "Spinal Disc", "Vision/Color Blindness", "Neuro/Paralysis (Medical)", "Ortho",
+        "Total Drivers (MU Reasons)", "Diff (MU Reasons)",
+        "--- Sick Leave - Reasons ---",
+        "Flu/Fever", "BP", "Orthopedic", "Heart", "Weakness", "Eye",
+        "Accident/Injuries", "Neuro/Paralysis (Sick Leave)", "Piles", "Diabetes", "Thyroid",
+        "Gas", "Dental", "Ear", "Skin/Allergy", "General Surgery",
+        "Obesity", "Cancer",
+        "Total Drivers (SL Reasons)", "Diff (SL Reasons)"
+  ],
+  "editable_rows": [
+            "Schedules", "Schedules Services", "Schedules Kms",
+        "Planned Schedules", "Planned Services", "Planned KM",
+        "Actual Services", "Actual KM",
+        "Total Drivers", "Medically Unfit", "Suspended Drivers",
+        "Weekly Off & National Off", "Special Off (Night Out/IC, Online)",
+        "Training, PME(medical)",
+        "Others (SDI, DGT, LO, Parking,<br>Relief Van,Depot Spare,<br> Cargo, Releaving duty)",
+        "Leave & Absent", "Sick Leave",
+        "Spot Absent",
+        "Drivers Required", 
+        "Double Duty", "Off Cancellation",
+        "Drivers as Conductors",
+        "Spondilitis", "Spinal Disc", "Vision/Color Blindness", "Neuro/Paralysis (Medical)", "Ortho",
+        "Flu/Fever", "BP", "Orthopedic", "Heart", "Weakness", "Eye",
+        "Accident/Injuries", "Neuro/Paralysis (Sick Leave)", "Piles", "Diabetes", "Thyroid",
+        "Gas", "Dental", "Ear", "Skin/Allergy", "General Surgery",
+        "Obesity", "Cancer"
+  ],
+  "non_editable_fixed_categories": [
+    "Service Variance", "KM Variance",
+        "Available Drivers-1", "Available Drivers-2", "Attending Drivers",
+        "Driver shortage", "Driver schedule", 
+        "Drivers on Duty", "Driver for Bus Services",
+        "KM/Driver", "Service/Driver Check",
+        "Total Drivers (MU Reasons)", "Diff (MU Reasons)",
+        "Total Drivers (SL Reasons)", "Diff (SL Reasons)"
+  ],
+  "benchmarks": {
+    "Rural": {
+      "% Weekly Off & National Off": 14,
+      "% Special Off (Night Out/IC, Online)": 25,
+      "% Others": 1.7,
+      "% Leave & Absent": 2,
+      "% Sick Leave": 2,
+      "% Spot Absent": 1,
+      "% Double Duty": 16,
+      "% Off Cancellation": 2,
+      "Drivers/Schedule": 2.18
+    },
+    "Urban": {
+      "% Weekly Off & National Off": 14,
+      "% Special Off (Night Out/IC, Online)": 27.4,
+      "% Others": 1,
+      "% Leave & Absent": 6,
+      "% Sick Leave": 2,
+      "% Spot Absent": 2,
+      "% Double Duty": 8,
+      "% Off Cancellation": 2,
+      "Drivers/Schedule": 2.43
+    }
+  },
+  "validation_rules": {
+    "Schedules": {
+      "min": 10,
+      "max": 999
+    },
+    "Schedules Services": {
+      "min": 10,
+      "max": 999
+    },
+    "Planned Schedules": {
+      "min": 10,
+      "max": 999
+    },
+    "Planned Services": {
+      "min": 10,
+      "max": 999
+    },
+    "Actual Services": {
+      "min": 10,
+      "max": 999
+    },
+    "Total Drivers": {
+      "min": 10,
+      "max": 999
+    },
+    "Schedules Kms": {
+      "min": 1000,
+      "max": 99999
+    },
+    "Planned KM": {
+      "min": 1000,
+      "max": 99999
+    },
+    "Actual KM": {
+      "min": 1000,
+      "max": 99999
+    },
+    "Drivers Required": {
+      "min": 1,
+      "max": 999
+    }
+  },
+  "special_validations": {
+    "diff_mu_reasons": {
+      "total_category": "Total Drivers (MU Reasons)",
+      "compare_category": "Medically Unfit"
+    },
+    "diff_sl_reasons": {
+      "total_category": "Total Drivers (SL Reasons)",
+      "compare_category": "Sick Leave",
+      "subcategories": [
+        "Flu/Fever",
+        "BP",
+        "Orthopedic",
+        "Heart",
+        "Weakness",
+        "Eye",
+        "Accident/Injuries",
+        "Neuro/Paralysis (Sick Leave)",
+        "Piles",
+        "Diabetes",
+        "Thyroid",
+        "Gas",
+        "Dental",
+        "Ear",
+        "Skin/Allergy",
+        "General Surgery",
+        "Obesity",
+        "Cancer"
+      ]
+    },
+    "tolerance": 1e-9
+  }
+
+}
