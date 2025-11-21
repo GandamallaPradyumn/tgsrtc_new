@@ -93,11 +93,7 @@ class driver_depot_dashboard_ui_RM:
         if self.ops_df is None:
             self.load_data()
 
-        # Financial years dictionary
-        self.financial_years = {
-            "01-04-2023 to 31-03-2024": (pd.Timestamp("2023-04-01"), pd.Timestamp("2024-03-31")),
-            "01-04-2024 to 31-03-2025": (pd.Timestamp("2024-04-01"), pd.Timestamp("2025-03-31")),
-        }
+
 
     # ---------------- Data Loading ----------------
     def load_data(self):
@@ -154,7 +150,7 @@ class driver_depot_dashboard_ui_RM:
         finally:
             cursor.close()
 
-    # ---------------- Parameters UI ----------------
+    #---------------- Parameters UI ----------------
     def parameters(self,):
 
         depots = self.get_user_depots()
@@ -171,10 +167,35 @@ class driver_depot_dashboard_ui_RM:
                 
 
             # Financial year selection
+            # MONTH & YEAR SELECTION (LIKE DM DASHBOARD)
+
+            st.markdown("###  Select Month & Year:")
+            col1, col2,col3= st.columns(3)
+
+            with col1:
+                years = [2025, 2024, 2023, 2022]
+                self.selected_year = st.selectbox("Select Year", years, index=0)
+
             with col2:
-                st.markdown("### Financial Year")
-                self.selected_fy = st.selectbox("", list(self.financial_years.keys()))
-                self.fy_start, self.fy_end = self.financial_years[self.selected_fy]
+                months = {
+                    "All": 0,
+                    "January": 1, "February": 2, "March": 3, "April": 4,
+                    "May": 5, "June": 6, "July": 7, "August": 8,
+                    "September": 9, "October": 10, "November": 11, "December": 12
+                }
+
+                month_list = list(months.keys())
+                self.selected_month = st.selectbox("Select Month", month_list, index=0)
+
+            m = months[self.selected_month]
+
+            # Date range logic
+            if self.selected_month == "All":
+                self.start_date = pd.Timestamp(self.selected_year, 1, 1)
+                self.end_date   = pd.Timestamp(self.selected_year, 12, 31)
+            else:
+                self.start_date = pd.Timestamp(self.selected_year, m, 1)
+                self.end_date   = self.start_date + pd.offsets.MonthEnd(1)
 
             # Driver selection
             with col3:
@@ -182,13 +203,13 @@ class driver_depot_dashboard_ui_RM:
                 if not drivers_in_depot:
                     st.warning("⚠ No drivers found for this depot.")
                     st.stop()
-                st.markdown("### Driver ID")
-                self.selected_driver = st.selectbox("", drivers_in_depot)
+                #st.markdown("### Employee ID")
+                self.selected_driver = st.selectbox("employee_id", drivers_in_depot)
 
     
     def driver_ui(self):
     # --- Populate month_year for the selected financial year ---
-        for i in pd.date_range(start=self.fy_start, end=self.fy_end, freq='MS'):
+        for i in pd.date_range(start=self.start_date, end=self.end_date, freq='MS'):
             if self.max_date >= i:
                 self.month_year.append(i.strftime('%Y-%m'))
         month_year_df = pd.DataFrame({'MONTH_YEAR':self.month_year})        
@@ -196,23 +217,23 @@ class driver_depot_dashboard_ui_RM:
         drv_ops = self.ops_df[
             (self.ops_df['EMPLOYEE_ID'] == self.selected_driver) &
             (self.ops_df['DEPOT'] == self.selected_depot) &
-            (self.ops_df['OPERATIONS_DATE'] >= self.fy_start) & (self.ops_df['OPERATIONS_DATE'] <= self.fy_end)
+            (self.ops_df['OPERATIONS_DATE'] >= self.start_date) & (self.ops_df['OPERATIONS_DATE'] <= self.end_date)
         ]
         drv_leaves = self.abs_df[
             (self.abs_df['EMPLOYEE_ID'] == self.selected_driver) &
             (self.abs_df['DEPOT'] == self.selected_depot) &
-            (self.abs_df['DATE'] >= self.fy_start) & (self.abs_df['DATE'] <= self.fy_end)
+            (self.abs_df['DATE'] >= self.start_date) & (self.abs_df['DATE'] <= self.end_date)
         ]
         drv_hours = pd.merge(self.ops_df, self.ser_df[['SERVICE_NUMBER','HOURS']],on='SERVICE_NUMBER',how='left')
         drv_hours['HOURS'] = drv_hours['HOURS'].fillna(0)
-        drv_hours2 = drv_hours[(drv_hours['DEPOT'] == self.selected_depot) & (drv_hours['OPERATIONS_DATE'] >= self.fy_start) & (drv_hours['OPERATIONS_DATE'] <= self.fy_end)]
-        drv_hours = drv_hours[(drv_hours['DEPOT'] == self.selected_depot) & (drv_hours['EMPLOYEE_ID'] == self.selected_driver) & (drv_hours['OPERATIONS_DATE'] >= self.fy_start) & (drv_hours['OPERATIONS_DATE'] <= self.fy_end)]
+        drv_hours2 = drv_hours[(drv_hours['DEPOT'] == self.selected_depot) & (drv_hours['OPERATIONS_DATE'] >= self.start_date) & (drv_hours['OPERATIONS_DATE'] <= self.end_date)]
+        drv_hours = drv_hours[(drv_hours['DEPOT'] == self.selected_depot) & (drv_hours['EMPLOYEE_ID'] == self.selected_driver) & (drv_hours['OPERATIONS_DATE'] >= self.start_date) & (drv_hours['OPERATIONS_DATE'] <= self.end_date)]
         drv_health = self.ghc1_df[self.ghc1_df['EMPLOYEE_ID'] == self.selected_driver] if 'EMPLOYEE_ID' in self.ghc1_df.columns else pd.DataFrame()
         drv_ghcgrade = pd.merge(self.ghc1_df[['EMPLOYEE_ID','AGE', 'FINAL_GRADING']], drv_hours2[['EMPLOYEE_ID','HOURS']], on='EMPLOYEE_ID', how='right')
         drv_ghcgrade['HOURS'] = drv_ghcgrade['HOURS'].fillna(0)
         self.drv_leaves2 = self.abs_df[
             (self.abs_df['DEPOT'] == self.selected_depot) &
-            (self.abs_df['DATE'] >= self.fy_start) & (self.abs_df['DATE'] <= self.fy_end)
+            (self.abs_df['DATE'] >= self.start_date) & (self.abs_df['DATE'] <= self.end_date)
         ]
         self.drv_leaves2 = self.drv_leaves2.groupby('EMPLOYEE_ID')['LEAVE_TYPE'].count()
         self.drv_leaves2 = self.drv_leaves2.reset_index()
@@ -221,7 +242,7 @@ class driver_depot_dashboard_ui_RM:
         # Depot-wide averages for context
         depot_ops_time = self.ops_df[
             (self.ops_df['DEPOT'] == self.selected_depot) &
-            (self.ops_df['OPERATIONS_DATE'] >= self.fy_start) & (self.ops_df['OPERATIONS_DATE'] <= self.fy_end)
+            (self.ops_df['OPERATIONS_DATE'] >= self.start_date) & (self.ops_df['OPERATIONS_DATE'] <= self.end_date)
         ]
         depot_kms_avg = depot_ops_time['OPD_KMS'].mean() if not depot_ops_time.empty and 'OPD_KMS' in depot_ops_time.columns else 0
         depot_earnings_avg = depot_ops_time['DAILY_EARNINGS'].mean() if not depot_ops_time.empty and 'DAILY_EARNINGS' in depot_ops_time.columns else 0
@@ -256,7 +277,7 @@ class driver_depot_dashboard_ui_RM:
             # Depot-wide averages
             depot_ops_time = self.ops_df[
                 (self.ops_df['DEPOT'] == self.selected_depot) &
-                (self.ops_df['OPERATIONS_DATE'].between(self.fy_start, self.fy_end))
+                (self.ops_df['OPERATIONS_DATE'].between(self.start_date, self.end_date))
             ]
             depot_kms_avg = depot_ops_time['OPD_KMS'].mean() if not depot_ops_time.empty and 'OPD_KMS' in depot_ops_time.columns else 0
             depot_earnings_avg = depot_ops_time['DAILY_EARNINGS'].mean() if not depot_ops_time.empty and 'DAILY_EARNINGS' in depot_ops_time.columns else 0
@@ -276,11 +297,11 @@ class driver_depot_dashboard_ui_RM:
                     <tr style="height:8px;"><td colspan="2"></td></tr>
                     <tr>
                         <td><b>Driver Avg Earnings per day</b></td>
-                        <td style="color:#1957a6; text-align:right;"><b>₹{total_earnings:,.2f}</b></td>
+                        <td style="color:#1957a6; text-align:right;"><b>₹{total_earnings/total_kms:,.2f}</b></td>
                     </tr>
                     <tr>
                         <td style="font-size:14px; color:#888;">Depot Avg Earnings per day</td>
-                        <td style="font-size:14px; color:#888; text-align:right;">₹{depot_earnings_avg:,.2f}</td>
+                        <td style="font-size:14px; color:#888; text-align:right;">₹{depot_earnings_avg/depot_kms_avg:,.2f}</td>
                     </tr>
                     <tr style="height:8px;"><td colspan="2"></td></tr>
                     <tr>
@@ -701,7 +722,6 @@ class driver_depot_dashboard_ui_RM:
                 drv_health = self.ghc1_df[self.ghc1_df['EMPLOYEE_ID'] == self.selected_driver]
 
         # --- Health Profile ---
-        # --- Health Profile ---
         st.markdown("### Health Profile")
         if not drv_health.empty:
             hr = drv_health.iloc[0]
@@ -711,19 +731,62 @@ class driver_depot_dashboard_ui_RM:
                 if value is None or pd.isna(value):
                     value = "NA"
                 if interpret:
-                    st.write(f"**{label}:** {value} ({interpret})")
+                    st.write(f"{label}:** {value} ({interpret})")
                 else:
-                    st.write(f"**{label}:** {value}")
+                    st.write(f"{label}:** {value}")
 
-            display_metric("BMI", hr.get('BMI'), hr.get('BMI_INTERPRET'))
-            display_metric("Blood Pressure", f"{hr.get('BLOOD_PRESSURE_SYSTOLIC', '')}/{hr.get('BLOOD_PRESSURE_DIASTOLIC', '')}", hr.get('BLOOD_PRESSURE_INTERPRET'))
-            display_metric("Hemoglobin", hr.get('HEMOGLOBIN_VALUE'), hr.get('HEMOGLOBIN_INTERPRET'))
-            display_metric("Glucose", hr.get('GLUCOSE_RANDOM_VALUE'), hr.get('GLUCOSE_INTERPRET'))
-            display_metric("Cholesterol", hr.get('TOTAL_CHOLESTROL'), hr.get('CHOLESTEROL_INTERPRET'))
-            display_metric("Final Health Grade", hr.get('FINAL_GRADING'))
+            st.write(f"**BMI:** {hr.get('BMI','NA')} ({hr.get('BMI_INTERPRET','')})")
+
+            st.write(
+                f"**Blood Pressure:** {hr.get('BLOOD_PRESSURE_SYSTOLIC','NA')}/"
+                f"{hr.get('BLOOD_PRESSURE_DIASTOLIC','NA')} "
+                f"({hr.get('BLOOD_PRESSURE_INTERPRET','')})"
+            )
+
+            st.write(
+                f"**Hemoglobin:** {hr.get('HEMOGLOBIN_VALUE','NA')} "
+                f"({hr.get('HEMOGLOBIN_INTERPRET','')})"
+            )
+
+            st.write(
+                f"**Glucose (Random):** {hr.get('GLUCOSE_RANDOM_VALUE','NA')} "
+                f"({hr.get('GLUCOSE_INTERPRET','')})"
+            )
+
+            st.write(
+                f"**Cholesterol:** {hr.get('TOTAL_CHOLESTROL','NA')} "
+                f"({hr.get('CHOLESTEROL_INTERPRET','')})"
+            )
+
+            st.write(
+                f"**Creatinine:** {hr.get('CREATININE_VALUE','NA')} "
+                f"({hr.get('CREATININE_INTERPRET','')})"
+            )
+
+            st.write(
+                f"**Bilirubin:** {hr.get('BILIRUBIN_TOTAL_VALUE','NA')} "
+                f"({hr.get('BILIRUBIN_INTERPRET','')})"
+            )
+
+            st.write(
+                f"**ECG Result:** {hr.get('ECG_INTERPRET','NA')} "
+                f"({hr.get('ECG_COMMENT','')})"
+            )
+
+            st.write(
+                f"**LEFT EYE (Day/Night):** {hr.get('D_LEFT_EYE','NA')} / "
+                f"{hr.get('N_LEFT_EYE','NA')}"
+            )
+
+            st.write(
+                f"**RIGHT EYE (Day/Night):** {hr.get('D_RIGHT_EYE','NA')} / "
+                f"{hr.get('N_RIGHT_EYE','NA')}"
+            )
+
+            st.write(f"**Final Health Grade:** {hr.get('FINAL_GRADING','NA')}")
+
         else:
             st.info("No health data available for this driver.")
-
 
 
 
@@ -732,15 +795,15 @@ class driver_depot_dashboard_ui_RM:
         drv_ops = self.ops_df[
             (self.ops_df['EMPLOYEE_ID'] == self.selected_driver) &
             (self.ops_df['DEPOT'] == self.selected_depot) &
-            (self.ops_df['OPERATIONS_DATE'] >= self.fy_start) &
-            (self.ops_df['OPERATIONS_DATE'] <= self.fy_end)
+            (self.ops_df['OPERATIONS_DATE'] >= self.start_date) &
+            (self.ops_df['OPERATIONS_DATE'] <= self.end_date)
         ]
         
         drv_leaves = self.abs_df[
             (self.abs_df['EMPLOYEE_ID'] == self.selected_driver) &
             (self.abs_df['DEPOT'] == self.selected_depot) &
-            (self.abs_df['DATE'] >= self.fy_start) &
-            (self.abs_df['DATE'] <= self.fy_end)
+            (self.abs_df['DATE'] >= self.start_date) &
+            (self.abs_df['DATE'] <= self.end_date)
         ]
         
         drv_hours = pd.merge(
@@ -749,14 +812,14 @@ class driver_depot_dashboard_ui_RM:
         drv_hours['HOURS'] = drv_hours['HOURS'].fillna(0)
         drv_hours2 = drv_hours[
             (drv_hours['DEPOT'] == self.selected_depot) &
-            (drv_hours['OPERATIONS_DATE'] >= self.fy_start) &
-            (drv_hours['OPERATIONS_DATE'] <= self.fy_end)
+            (drv_hours['OPERATIONS_DATE'] >= self.start_date) &
+            (drv_hours['OPERATIONS_DATE'] <= self.end_date)
         ]
         drv_hours = drv_hours[
             (drv_hours['DEPOT'] == self.selected_depot) &
             (drv_hours['EMPLOYEE_ID'] == self.selected_driver) &
-            (drv_hours['OPERATIONS_DATE'] >= self.fy_start) &
-            (drv_hours['OPERATIONS_DATE'] <= self.fy_end)
+            (drv_hours['OPERATIONS_DATE'] >= self.start_date) &
+            (drv_hours['OPERATIONS_DATE'] <= self.end_date)
         ]
         
         # --- Driver health data ---
@@ -782,8 +845,8 @@ class driver_depot_dashboard_ui_RM:
         if not self.abs_df.empty and hasattr(self, 'ghc1_df') and self.ghc1_df is not None:
             drv_leaves_filtered = self.abs_df[
                 (self.abs_df['DEPOT'] == self.selected_depot) &
-                (self.abs_df['DATE'] >= self.fy_start) &
-                (self.abs_df['DATE'] <= self.fy_end) &
+                (self.abs_df['DATE'] >= self.start_date) &
+                (self.abs_df['DATE'] <= self.end_date) &
                 (self.abs_df['LEAVE_TYPE'].isin(['L', 'S', 'A']))
             ]
             if not drv_leaves_filtered.empty:
@@ -806,19 +869,19 @@ class driver_depot_dashboard_ui_RM:
         
         # --- Global averages ---
         global_ops_time = self.ops_df[
-            (self.ops_df['OPERATIONS_DATE'] >= self.fy_start) &
-            (self.ops_df['OPERATIONS_DATE'] <= self.fy_end)
+            (self.ops_df['OPERATIONS_DATE'] >= self.start_date) &
+            (self.ops_df['OPERATIONS_DATE'] <= self.end_date)
         ]
         global_hours = pd.merge(
             self.ops_df, self.ser_df[['SERVICE_NUMBER','HOURS']], on='SERVICE_NUMBER', how='left'
         )
         global_hours = global_hours[
-            (global_hours['OPERATIONS_DATE'] >= self.fy_start) &
-            (global_hours['OPERATIONS_DATE'] <= self.fy_end)
+            (global_hours['OPERATIONS_DATE'] >= self.start_date) &
+            (global_hours['OPERATIONS_DATE'] <= self.end_date)
         ]
         global_leaves = self.abs_df[
-            (self.abs_df['DATE'] >= self.fy_start) &
-            (self.abs_df['DATE'] <= self.fy_end) &
+            (self.abs_df['DATE'] >= self.start_date) &
+            (self.abs_df['DATE'] <= self.end_date) &
             (self.abs_df['LEAVE_TYPE'].isin(['L','S','A']))
         ]
         
@@ -899,146 +962,295 @@ class driver_depot_dashboard_ui_RM:
             s += f"<span style='font-size:15px;color:red;'>{avg_label}</span></div>"
             st.markdown(s, unsafe_allow_html=True)
             
-        # --- Total Kilometers ---
-        st.markdown("### Total Kilometers Driven by All Employees")
+         # ================================================================
+        # --- DEPOT-WISE AVERAGES (correct averages) ---
+        # ================================================================
         depot_ops_time = self.ops_df[
             (self.ops_df['DEPOT'] == self.selected_depot) &
-            (self.ops_df['OPERATIONS_DATE'] >= self.fy_start) & (self.ops_df['OPERATIONS_DATE'] <= self.fy_end)
+            (self.ops_df['OPERATIONS_DATE'] >= self.start_date) &
+            (self.ops_df['OPERATIONS_DATE'] <= self.end_date)
         ]
-        all_emp_kms = depot_ops_time.groupby('EMPLOYEE_ID')['OPD_KMS'].sum().reset_index()
-        all_emp_kms['is_selected'] = all_emp_kms['EMPLOYEE_ID'] == self.selected_driver
-        
-        base_kms = alt.Chart(all_emp_kms).encode(
-            x=alt.X('EMPLOYEE_ID:N', title='Employee ID', sort='-y'),
-            y=alt.Y('OPD_KMS:Q', title='Total Kilometers'),
-            tooltip=['EMPLOYEE_ID', 'OPD_KMS']
+
+        depot_hours2 = drv_hours2  # already filtered above
+
+        depot_leaves = self.abs_df[
+            (self.abs_df['DEPOT'] == self.selected_depot) &
+            (self.abs_df['DATE'] >= self.start_date) &
+            (self.abs_df['DATE'] <= self.end_date) &
+            (self.abs_df['LEAVE_TYPE'].isin(['L','S','A']))
+        ]
+
+        # DEPOT AVERAGES
+        depot_kms_avg = depot_ops_time['OPD_KMS'].mean() if 'OPD_KMS' in depot_ops_time.columns else 0
+        depot_earnings_avg = depot_ops_time['DAILY_EARNINGS'].mean() if 'DAILY_EARNINGS' in depot_ops_time.columns else 0
+        depot_hours_avg = depot_hours2['HOURS'].mean() if not depot_hours2.empty else 0
+
+        if not depot_leaves.empty:
+            depot_leaves_avg = depot_leaves.groupby('EMPLOYEE_ID').size().mean()
+        else:
+            depot_leaves_avg = 0
+
+
+        # ================================================================
+        # --- Total Kilometers Driven by All Employees ---
+        # ================================================================
+        st.markdown("### Total Kilometers Driven by All Employees")
+
+        # Filter depot + date range
+        depot_ops_time = self.ops_df[
+            (self.ops_df['DEPOT'] == self.selected_depot) &
+            (self.ops_df['OPERATIONS_DATE'] >= self.start_date) &
+            (self.ops_df['OPERATIONS_DATE'] <= self.end_date)
+        ]
+
+        # Sum KMs per employee
+        all_emp_kms = (
+            depot_ops_time
+            .groupby('EMPLOYEE_ID')['OPD_KMS']
+            .sum()
+            .reset_index()
         )
-        
-        bars_kms = base_kms.mark_bar().encode(
-            color=alt.condition(
-                alt.datum.is_selected,
-                alt.value('red'),
-                alt.value('#1f77b4')
+
+        # Sort by KMs descending for clean chart
+        all_emp_kms = all_emp_kms.sort_values('OPD_KMS', ascending=False).reset_index(drop=True)
+
+        # Tag selected employee
+        all_emp_kms['is_selected'] = all_emp_kms['EMPLOYEE_ID'] == self.selected_driver
+
+        # ✅ Correct Average (mean of bars being displayed)
+        avg_emp_kms = all_emp_kms['OPD_KMS'].mean() if not all_emp_kms.empty else 0
+
+        # Main bar chart
+        bars_kms = (
+            alt.Chart(all_emp_kms)
+            .mark_bar()
+            .encode(
+                x=alt.X(
+                    'EMPLOYEE_ID:N',
+                    title='Employee ID',
+                    sort=all_emp_kms['EMPLOYEE_ID'].tolist()
+                ),
+                y=alt.Y('OPD_KMS:Q', title='Total Kilometers'),
+                tooltip=['EMPLOYEE_ID', 'OPD_KMS'],
+                color=alt.condition(
+                    alt.datum.is_selected,
+                    alt.value('red'),       # selected employee
+                    alt.value('#1f77b4')    # others
+                )
             )
         )
-        
-        avg_line_kms = alt.Chart(pd.DataFrame({'OPD_KMS': [global_kms_avg]})).mark_rule(color='red', strokeDash=[4,2]).encode(
-            y='OPD_KMS:Q'
+
+        # Average line
+        avg_df = pd.DataFrame({'avg_kms': [avg_emp_kms]})
+
+        avg_line = (
+            alt.Chart(avg_df)
+            .mark_rule(color='red', strokeDash=[4, 2], size=2)
+            .encode(y='avg_kms:Q')
         )
 
-        st.altair_chart((bars_kms + avg_line_kms).properties(width=900), use_container_width=True)
-        chart_legend("Depot Employees: Blue", "#1f77b4", "Selected Employee: Red", "red", "Global Average: Red Dashed")
+        # Average label
+        avg_text = (
+            alt.Chart(avg_df)
+            .mark_text(color='red', dx=5, dy=-10)
+            .encode(
+                y='avg_kms:Q',
+                text=alt.value(f"Avg: {avg_emp_kms:,.0f}")
+            )
+        )
 
-        # --- Total Earnings ---
+        # Final chart
+        final_chart = (bars_kms + avg_line + avg_text).properties(width=900)
+        st.altair_chart(final_chart, use_container_width=True)
+
+        # Legend
+        chart_legend(
+            "Depot Employees: Blue", "#1f77b4",
+            "Selected Employee: Red", "red",
+            "Average Line: Red Dashed"
+        )
+
+
+        # ================================================================
+        # --- Total Earnings of All Employees ---
+        # ================================================================
         if 'DAILY_EARNINGS' in depot_ops_time.columns:
             st.markdown("### Total Earnings of All Employees")
-            all_emp_earnings = depot_ops_time.groupby('EMPLOYEE_ID')['DAILY_EARNINGS'].sum().reset_index()
+
+            # Sum earnings per employee
+            all_emp_earnings = (
+                depot_ops_time.groupby('EMPLOYEE_ID')['DAILY_EARNINGS']
+                .sum()
+                .reset_index()
+            )
+
+            # Sort descending
+            all_emp_earnings = all_emp_earnings.sort_values('DAILY_EARNINGS', ascending=False).reset_index(drop=True)
+
+            # Highlight selected driver
             all_emp_earnings['is_selected'] = all_emp_earnings['EMPLOYEE_ID'] == self.selected_driver
-            
-            base_earnings = alt.Chart(all_emp_earnings).encode(
-                x=alt.X('EMPLOYEE_ID:N', title='Employee ID', sort='-y'),
-                y=alt.Y('DAILY_EARNINGS:Q', title='Total Earnings'),
-                tooltip=['EMPLOYEE_ID', alt.Tooltip('DAILY_EARNINGS', format='$,.2f')]
-            )
-            
-            bars_earnings = base_earnings.mark_bar().encode(
-                color=alt.condition(
-                    alt.datum.is_selected,
-                    alt.value('red'),
-                    alt.value('#1f77b4')
-                ) 
-            )
-            
-            avg_line_earnings = alt.Chart(pd.DataFrame({'DAILY_EARNINGS': [global_earnings_avg]})).mark_rule(color='red', strokeDash=[4,2]).encode(
-                y='DAILY_EARNINGS:Q'
-            )
 
-            st.altair_chart((bars_earnings + avg_line_earnings).properties(width=900), use_container_width=True)
-            chart_legend("Depot Employees: Blue", "#1f77b4", "Selected Employee: Red", "red", "Global Average: Red Dashed")
-        
-        # --- Day vs Night Duties ---
-        if 'DAY_NIGHT' in depot_ops_time.columns:
-            st.markdown("### Day vs Night Duties of All Employees")
-            dn_summary_all = depot_ops_time.groupby(['EMPLOYEE_ID', 'DAY_NIGHT']).size().reset_index(name='Count')
-            dn_summary_all['is_selected'] = dn_summary_all['EMPLOYEE_ID'] == self.selected_driver
+            # Correct average from bars
+            avg_emp_earnings = all_emp_earnings['DAILY_EARNINGS'].mean()
 
-            base_dn = alt.Chart(dn_summary_all).encode(
-                x=alt.X('EMPLOYEE_ID:N', title='Employee ID', sort='-y'),
-                y=alt.Y('Count:Q', title='Total Duties'),
-                color=alt.Color('DAY_NIGHT:N', scale=alt.Scale(domain=["D", "N"], range=["#1f77b4", "#5A00FF"]))
-            ).properties(
-                title=f"Day and Night Duties for Employees in {self.selected_depot}"
-            )
-            
-            bars_dn = base_dn.mark_bar().encode(
-                tooltip=['EMPLOYEE_ID', 'DAY_NIGHT', 'Count'],
-                color=alt.condition(
-                    alt.datum.is_selected,
-                    alt.value('red'),
-                    alt.Color('DAY_NIGHT:N', scale=alt.Scale(domain=["D", "N"], range=["#1f77b4", "#5A00FF"]))
+            # Bars
+            bars_earnings = (
+                alt.Chart(all_emp_earnings)
+                .mark_bar()
+                .encode(
+                    x=alt.X('EMPLOYEE_ID:N', title='Employee ID', sort=all_emp_earnings['EMPLOYEE_ID'].tolist()),
+                    y=alt.Y('DAILY_EARNINGS:Q', title='Total Earnings'),
+                    tooltip=['EMPLOYEE_ID', 'DAILY_EARNINGS'],
+                    color=alt.condition(
+                        alt.datum.is_selected,
+                        alt.value('red'),
+                        alt.value('#1f77b4')
+                    )
                 )
             )
-            
-            st.altair_chart(bars_dn.properties(width=900), use_container_width=True)
-            chart_legend("Day Out: Blue", "#1f77b4", "Night Out: Purple", "#5A00FF", "Selected Employee: Red")
 
-        # --- PRODUCTIVITY HOURS ---
+            # Average line + label
+            avg_df = pd.DataFrame({'avg_earn': [avg_emp_earnings]})
+
+            avg_line = (
+                alt.Chart(avg_df)
+                .mark_rule(color='red', strokeDash=[4, 2], size=2)
+                .encode(y='avg_earn:Q')
+            )
+
+            avg_text = (
+                alt.Chart(avg_df)
+                .mark_text(color='red', dx=5, dy=-10)
+                .encode(
+                    y='avg_earn:Q',
+                    text=alt.value(f"Avg: ₹{avg_emp_earnings:,.0f}")
+                )
+            )
+
+            st.altair_chart((bars_earnings + avg_line + avg_text).properties(width=900), use_container_width=True)
+
+            chart_legend("Depot Employees: Blue", "#1f77b4", "Selected Employee: Red", "red", "Average Line: Red Dashed")
+
+
+
+        # ================================================================
+        # --- Total Productivity Hours of All Employees ---
+        # ================================================================
         if not drv_hours2.empty:
             st.markdown("### Total Productivity Hours of All Employees")
-            all_emp_hours = drv_hours2.groupby('EMPLOYEE_ID')['HOURS'].sum().reset_index()
-            all_emp_hours['is_selected'] = all_emp_hours['EMPLOYEE_ID'] == self.selected_driver
-            
-            base_hours = alt.Chart(all_emp_hours).encode(
-                x=alt.X('EMPLOYEE_ID:N', title='Employee ID', sort='-y'),
-                y=alt.Y('HOURS:Q', title='Total Hours'),
-                tooltip=['EMPLOYEE_ID', 'HOURS']
+
+            # Sum hours per employee
+            all_emp_hours = (
+                drv_hours2.groupby('EMPLOYEE_ID')['HOURS']
+                .sum()
+                .reset_index()
             )
-            
-            bars_hours = base_hours.mark_bar().encode(
-                color=alt.condition(
-                    alt.datum.is_selected,
-                    alt.value('red'),
-                    alt.value('#1f77b4')
+
+            # Sort descending
+            all_emp_hours = all_emp_hours.sort_values('HOURS', ascending=False).reset_index(drop=True)
+
+            # Mark selected employee
+            all_emp_hours['is_selected'] = all_emp_hours['EMPLOYEE_ID'] == self.selected_driver
+
+            # Correct average from bars
+            avg_emp_hours = all_emp_hours['HOURS'].mean()
+
+            # Bars
+            bars_hours = (
+                alt.Chart(all_emp_hours)
+                .mark_bar()
+                .encode(
+                    x=alt.X('EMPLOYEE_ID:N', title='Employee ID', sort=all_emp_hours['EMPLOYEE_ID'].tolist()),
+                    y=alt.Y('HOURS:Q', title='Total Hours'),
+                    tooltip=['EMPLOYEE_ID', 'HOURS'],
+                    color=alt.condition(
+                        alt.datum.is_selected,
+                        alt.value('red'),
+                        alt.value('#1f77b4')
+                    )
                 )
             )
-            
-            avg_line_hours = alt.Chart(pd.DataFrame({'HOURS': [global_hours_avg]})).mark_rule(color='red', strokeDash=[4,2]).encode(
-                y='HOURS:Q'
+
+            avg_df = pd.DataFrame({'avg_hours': [avg_emp_hours]})
+
+            avg_line = (
+                alt.Chart(avg_df)
+                .mark_rule(color='red', strokeDash=[4, 2], size=2)
+                .encode(y='avg_hours:Q')
             )
 
-            st.altair_chart((bars_hours + avg_line_hours).properties(width=900), use_container_width=True)
-            chart_legend("Depot Employees: Blue", "#1f77b4", "Selected Employee: Red", "red", "Global Average: Red Dashed")
-        else:
-            st.info("No hours data for selected filters.")
+            avg_text = (
+                alt.Chart(avg_df)
+                .mark_text(color='red', dx=5, dy=-10)
+                .encode(
+                    y='avg_hours:Q',
+                    text=alt.value(f"Avg: {avg_emp_hours:,.0f}")
+                )
+            )
 
-        # --- Absenteeism/Leave Summary ---
+            st.altair_chart((bars_hours + avg_line + avg_text).properties(width=900), use_container_width=True)
+
+            chart_legend("Depot Employees: Blue", "#1f77b4", "Selected Employee: Red", "red", "Average Line: Red Dashed")
+
+
+        # ================================================================
+        # --- Total Leave Days (L+S+A) of All Employees ---
+        # ================================================================
         if not self.drv_leaves2.empty:
             st.markdown("### Total Leave Days (L+S+A) of All Employees")
-            all_emp_leaves = self.drv_leaves2.groupby('EMPLOYEE_ID')['LEAVE_COUNT'].sum().reset_index(name='Leave_Days')
-            all_emp_leaves['is_selected'] = all_emp_leaves['EMPLOYEE_ID'] == self.selected_driver
-            
-            base_leaves = alt.Chart(all_emp_leaves).encode(
-                x=alt.X('EMPLOYEE_ID:N', title='Employee ID', sort='-y'),
-                y=alt.Y('Leave_Days:Q', title='Total Leave Days'),
-                tooltip=['EMPLOYEE_ID', 'Leave_Days']
-            )
-            
-            bars_leaves = base_leaves.mark_bar().encode(
-                color=alt.condition(
-                    alt.datum.is_selected,
-                    alt.value('red'),
-                    alt.value('#1f77b4')
-                )
-            )
-            
-            avg_line_leaves = alt.Chart(pd.DataFrame({'Leave_Days': [global_leaves_avg]})).mark_rule(color='red', strokeDash=[4,2]).encode(
-                y='Leave_Days:Q'
+
+            all_emp_leaves = (
+                self.drv_leaves2.groupby('EMPLOYEE_ID')['LEAVE_COUNT']
+                .sum()
+                .reset_index(name='Leave_Days')
             )
 
-            st.altair_chart((bars_leaves + avg_line_leaves).properties(width=900), use_container_width=True)
-            chart_legend("Depot Employees: Blue", "#1f77b4", "Selected Employee: Red", "red", "Global Average: Red Dashed")
-        else:
-            st.info("No leave/absenteeism data for selected filters.")
+            # Sort descending
+            all_emp_leaves = all_emp_leaves.sort_values('Leave_Days', ascending=False).reset_index(drop=True)
+
+            # Highlight selected employee
+            all_emp_leaves['is_selected'] = all_emp_leaves['EMPLOYEE_ID'] == self.selected_driver
+
+            # Correct average based on bars
+            avg_leave_days = all_emp_leaves['Leave_Days'].mean()
+
+            # Bars
+            bars_leaves = (
+                alt.Chart(all_emp_leaves)
+                .mark_bar()
+                .encode(
+                    x=alt.X('EMPLOYEE_ID:N', title='Employee ID', sort=all_emp_leaves['EMPLOYEE_ID'].tolist()),
+                    y=alt.Y('Leave_Days:Q', title='Total Leave Days'),
+                    tooltip=['EMPLOYEE_ID', 'Leave_Days'],
+                    color=alt.condition(
+                        alt.datum.is_selected,
+                        alt.value('red'),
+                        alt.value('#1f77b4')
+                    )
+                )
+            )
+
+            avg_df = pd.DataFrame({'avg_leave': [avg_leave_days]})
+
+            avg_line = (
+                alt.Chart(avg_df)
+                .mark_rule(color='red', strokeDash=[4, 2], size=2)
+                .encode(y='avg_leave:Q')
+            )
+
+            avg_text = (
+                alt.Chart(avg_df)
+                .mark_text(color='red', dx=5, dy=-10)
+                .encode(
+                    y='avg_leave:Q',
+                    text=alt.value(f"Avg: {avg_leave_days:,.0f}")
+                )
+            )
+
+            st.altair_chart((bars_leaves + avg_line + avg_text).properties(width=900), use_container_width=True)
+
+            chart_legend("Depot Employees: Blue", "#1f77b4", "Selected Employee: Red", "red", "Average Line: Red Dashed")
+
 
         # --- PRODUCTIVITY BY HEALTH GRADE ---
         st.markdown("---")
@@ -1120,15 +1332,58 @@ class driver_depot_dashboard_ui_RM:
         st.markdown("### Health Profile")
         if not drv_health.empty:
             hr = drv_health.iloc[0]
-            st.write(f"**BMI:** {hr.get('BMI', 'NA')} ({hr.get('BMI_INTERPRET','')})")
-            st.write(f"**BP:** {hr.get('BLOOD_PRESSURE_SYSTOLIC', '')}/{hr.get('BLOOD_PRESSURE_DIASTOLIC', '')} ({hr.get('BLOOD_PRESSURE_INTERPRET', '')})")
-            st.write(f"**Hemoglobin:** {hr.get('HEMOGLOBIN_VALUE','NA')} ({hr.get('HEMOGLOBIN_INTERPRET','')})")
-            st.write(f"**Glucose:** {hr.get('GLUCOSE_RANDOM_VALUE','NA')} ({hr.get('GLUCOSE_INTERPRET','')})")
-            st.write(f"**Cholesterol:** {hr.get('TOTAL_CHOLESTROL','NA')} ({hr.get('CHOLESTEROL_INTERPRET','')})")
-            st.write(f"**Final Health Grade:** {hr.get('FINAL_GRADING', '')}")
+            st.write(f"**BMI:** {hr.get('BMI','NA')} ({hr.get('BMI_INTERPRET','')})")
+
+            st.write(
+                f"**Blood Pressure:** {hr.get('BLOOD_PRESSURE_SYSTOLIC','NA')}/"
+                f"{hr.get('BLOOD_PRESSURE_DIASTOLIC','NA')} "
+                f"({hr.get('BLOOD_PRESSURE_INTERPRET','')})"
+            )
+
+            st.write(
+                f"**Hemoglobin:** {hr.get('HEMOGLOBIN_VALUE','NA')} "
+                f"({hr.get('HEMOGLOBIN_INTERPRET','')})"
+            )
+
+            st.write(
+                f"**Glucose (Random):** {hr.get('GLUCOSE_RANDOM_VALUE','NA')} "
+                f"({hr.get('GLUCOSE_INTERPRET','')})"
+            )
+
+            st.write(
+                f"**Cholesterol:** {hr.get('TOTAL_CHOLESTROL','NA')} "
+                f"({hr.get('CHOLESTEROL_INTERPRET','')})"
+            )
+
+            st.write(
+                f"**Creatinine:** {hr.get('CREATININE_VALUE','NA')} "
+                f"({hr.get('CREATININE_INTERPRET','')})"
+            )
+
+            st.write(
+                f"**Bilirubin:** {hr.get('BILIRUBIN_TOTAL_VALUE','NA')} "
+                f"({hr.get('BILIRUBIN_INTERPRET','')})"
+            )
+
+            st.write(
+                f"**ECG Result:** {hr.get('ECG_INTERPRET','NA')} "
+                f"({hr.get('ECG_COMMENT','')})"
+            )
+
+            st.write(
+                f"**LEFT EYE (Day/Night):** {hr.get('D_LEFT_EYE','NA')} / "
+                f"{hr.get('N_LEFT_EYE','NA')}"
+            )
+
+            st.write(
+                f"**RIGHT EYE (Day/Night):** {hr.get('D_RIGHT_EYE','NA')} / "
+                f"{hr.get('N_RIGHT_EYE','NA')}"
+            )
+
+            st.write(f"**Final Health Grade:** {hr.get('FINAL_GRADING','NA')}")
+
         else:
             st.info("No health data for this driver.")
-
 
 if __name__ == '__main__':
     user_region = st.session_state.user_region
