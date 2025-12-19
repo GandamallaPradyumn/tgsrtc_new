@@ -790,7 +790,6 @@ class driver_depot_dashboard_ui_DM:
                 drv_health = self.ghc1_df[self.ghc1_df['EMPLOYEE_ID'] == self.selected_driver]
 
         # --- Health Profile ---
-        # --- Health Profile ---
         st.markdown("### Health Profile")
         if not drv_health.empty:
             hr = drv_health.iloc[0]
@@ -856,6 +855,60 @@ class driver_depot_dashboard_ui_DM:
 
         else:
             st.info("No health data available for this driver.")
+        
+            # ==========================================================
+    # TOP & BOTTOM 5 DRIVER PERFORMANCE
+    # ==========================================================
+    def compute_top_bottom_5(self):
+        # Base filtered data
+        ops = self.ops_df[
+            (self.ops_df['OPERATIONS_DATE'] >= self.start_date) &
+            (self.ops_df['OPERATIONS_DATE'] <= self.end_date)
+        ]
+
+        hours_df = pd.merge(
+            ops,
+            self.ser_df[['SERVICE_NUMBER', 'HOURS']],
+            on='SERVICE_NUMBER',
+            how='left'
+        )
+        hours_df['HOURS'] = hours_df['HOURS'].fillna(0)
+
+        leaves = self.abs_df[
+            (self.abs_df['DATE'] >= self.start_date) &
+            (self.abs_df['DATE'] <= self.end_date) &
+            (self.abs_df['LEAVE_TYPE'].isin(['L', 'S', 'A']))
+        ]
+
+        # Aggregate metrics
+        perf = ops.groupby('EMPLOYEE_ID').agg(
+            TOTAL_KMS=('OPD_KMS', 'sum'),
+            TOTAL_EARNINGS=('DAILY_EARNINGS', 'sum')
+        ).reset_index()
+
+        hrs = hours_df.groupby('EMPLOYEE_ID')['HOURS'].sum().reset_index()
+        lv = leaves.groupby('EMPLOYEE_ID').size().reset_index(name='LEAVE_COUNT')
+
+        perf = perf.merge(hrs, on='EMPLOYEE_ID', how='left')
+        perf = perf.merge(lv, on='EMPLOYEE_ID', how='left')
+
+        perf[['HOURS', 'LEAVE_COUNT']] = perf[['HOURS', 'LEAVE_COUNT']].fillna(0)
+
+        # Normalization helper
+        def norm(s):
+            return (s - s.min()) / (s.max() - s.min()) if s.max() != s.min() else 0
+
+        perf['SCORE'] = (
+            norm(perf['TOTAL_KMS']) +
+            norm(perf['TOTAL_EARNINGS']) +
+            norm(perf['HOURS']) -
+            norm(perf['LEAVE_COUNT'])
+        )
+
+        top5 = perf.sort_values('SCORE', ascending=False).head(5)
+        bottom5 = perf.sort_values('SCORE').head(5)
+
+        return top5, bottom5
 
 
 
@@ -1335,6 +1388,37 @@ class driver_depot_dashboard_ui_DM:
 
         else:
             st.info("No health data for this driver.")
+
+        # ================================================================
+        # TOP & BOTTOM 5 DRIVERS (PERFORMANCE)
+        # ================================================================
+        st.markdown("---")
+        st.header("🏆 Top & Bottom 5 Drivers (Overall Performance)")
+
+        top5, bottom5 = self.compute_top_bottom_5()
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.subheader("✅ Top 5 Drivers")
+            st.dataframe(
+                top5[['EMPLOYEE_ID', 'TOTAL_KMS', 'TOTAL_EARNINGS', 'HOURS', 'LEAVE_COUNT', 'SCORE']]
+                .style
+                .background_gradient(cmap='Greens')
+                .format({'SCORE': '{:.2f}'}),
+                use_container_width=True
+            )
+
+        with col2:
+            st.subheader("❌ Bottom 5 Drivers")
+            st.dataframe(
+                bottom5[['EMPLOYEE_ID', 'TOTAL_KMS', 'TOTAL_EARNINGS', 'HOURS', 'LEAVE_COUNT', 'SCORE']]
+                .style
+                .background_gradient(cmap='Reds')
+                .format({'SCORE': '{:.2f}'}),
+                use_container_width=True
+            )
+
 
 
 if __name__ == '__main__':
