@@ -13,6 +13,21 @@ with open("config.json") as f:
 
 BENCHMARKS = CONFIG.get("benchmarks", {})
 
+import requests
+
+BACKEND_URL = "http://localhost:8000"
+
+def fetch_ai_summary(depot, kpi_name, from_date, to_date):
+    payload = {
+        "depot": depot,
+        "kpi": kpi_name,
+        "from_date": from_date,
+        "to_date": to_date
+    }
+    r = requests.post(f"{BACKEND_URL}/ask_kpi", json=payload, timeout=60)
+    if r.status_code == 200:
+        return r.json().get("summary")
+    return "AI summary unavailable."
 
 # ---------------------- ORM Helpers ----------------------
 def whitelist_columns(data_dict):
@@ -25,6 +40,7 @@ def whitelist_columns(data_dict):
         "Spot_Absent",
         "Double_Duty",
         "Off_Cancellation",
+        "Driver_Schedule"
     }
     return {k: v for k, v in data_dict.items() if k in allowed}
 
@@ -114,23 +130,28 @@ def fetch_monthly_avg(depot, selected_date):
 
     with get_session() as db:
         result = (
-            db.query(
-                func.avg(InputData.Pct_Weekly_Off_National_Off),
-                func.avg(InputData.Pct_Special_Off_Night_Out_IC_Online),
-                func.avg(InputData.Pct_Others),
-                func.avg(InputData.Pct_Leave_Absent),
-                func.avg(InputData.Pct_Sick_Leave),
-                func.avg(InputData.Pct_Spot_Absent),
-                func.avg(InputData.Pct_Double_Duty),
-                func.avg(InputData.Pct_Off_Cancellation),
-            )
-            .filter(
-                InputData.depot_name == depot,
-                extract("year", InputData.data_date) == year,
-                extract("month", InputData.data_date) == month,
-            )
-            .first()
+        db.query(
+            func.avg(InputData.Pct_Weekly_Off_National_Off),
+            func.avg(InputData.Pct_Special_Off_Night_Out_IC_Online),
+            func.avg(InputData.Pct_Others),
+            func.avg(InputData.Pct_Leave_Absent),
+            func.avg(InputData.Pct_Sick_Leave),
+            func.avg(InputData.Pct_Spot_Absent),
+            func.avg(InputData.Pct_Double_Duty),
+            func.avg(InputData.Pct_Off_Cancellation),
+            (
+                func.sum(InputData.Total_Drivers) /
+                func.nullif(func.sum(InputData.Planned_Schedules), 0)
+            ).label("driver_schedule_ratio"),
         )
+        .filter(
+            InputData.depot_name == depot,
+            extract("year", InputData.data_date) == year,
+            extract("month", InputData.data_date) == month,
+        )
+        .first()
+    )
+
 
     if result:
         return {
@@ -142,6 +163,7 @@ def fetch_monthly_avg(depot, selected_date):
             "Spot_Absent": round(result[5] or 0, 2),
             "Double_Duty": round(result[6] or 0, 2),
             "Off_Cancellation": round(result[7] or 0, 2),
+            "Driver_Schedule": round(result[8] or 0, 1),
         }
     return {}
 
@@ -189,7 +211,7 @@ def get_last_filled_for_quarter(depot: str, selected_year: int, q: str):
 
 
 # ---------------------- Streamlit UI ----------------------
-def action():
+def action_dm():
     st.title("📘 KPI's Action Plan")
 
     selected_depot = st.session_state.get("user_depot")
@@ -248,10 +270,21 @@ def action():
 
     monthly_avg = fetch_monthly_avg(selected_depot, action_date)
     benchmark_zone = BENCHMARKS.get(category, {})
+    BACKEND_KPI_NAMES = {
+    "Weekly_Off_National_Off": "Weekly Off",
+    "Special_Off_Night_Out_IC_Online": "Special Off (Night Out/IC, Online)",
+    "Other_s": "Others",
+    "Leave_Absent": "Long Leave & Absent",
+    "Sick_Leave": "Sick Leave",
+    "Spot_Absent": "Spot Absent",
+    "Double_Duty": "Double Duty",
+    "Off_Cancellation": "Off Cancellation",
+    "Driver_Schedule": "Drivers/Schedule",
+}
 
     existing = fetch_existing(selected_depot, action_date)
     def get_val(col): return existing.get(col, "") if existing else ""
-
+    
     kpi_map = {
         "Weekly_Off_National_Off": "% Weekly Off & National Off",
         "Special_Off_Night_Out_IC_Online": "% Special Off (Night Out/IC, Online)",
@@ -261,29 +294,83 @@ def action():
         "Spot_Absent": "% Spot Absent",
         "Double_Duty": "% Double Duty",
         "Off_Cancellation": "% Off Cancellation",
+        "Driver_Schedule": "Drivers/Schedule"
     }
+    
+    # ---------------------- AI Summary Generator ----------------------
 
-    with st.form("entry_form", clear_on_submit=True):
-        st.write("### ✍️ Enter Action Plan Details")
 
-        def label_with_avg_and_benchmark(label, db_key):
-            avg_val = monthly_avg.get(db_key)
-            avg_str = f"{avg_val:.2f}%" if avg_val else "—"
-            bench_val = benchmark_zone.get(kpi_map.get(db_key), None)
-            bench_str = f"{bench_val:.2f}%" if bench_val is not None else "—"
-            return f"{label}\n🟢 Avg for selected month: **{avg_str}** | 🎯 Benchmark: **{bench_str}**"
+    def kpi_with_ai(db_key, label):
+        avg_val = monthly_avg.get(db_key)
+        bench_val = benchmark_zone.get(kpi_map.get(db_key))
 
-        fields = {
-            "Weekly_Off_National_Off": st.text_area(label_with_avg_and_benchmark("Weekly Off & National Off", "Weekly_Off_National_Off"), value=get_val("Weekly_Off_National_Off")),
-            "Special_Off_Night_Out_IC_Online": st.text_area(label_with_avg_and_benchmark("Special Off (Night Out IC & Online)", "Special_Off_Night_Out_IC_Online"), value=get_val("Special_Off_Night_Out_IC_Online")),
-            "Other_s": st.text_area(label_with_avg_and_benchmark("Others", "Other_s"), value=get_val("Other_s")),
-            "Leave_Absent": st.text_area(label_with_avg_and_benchmark("Leave & Absent", "Leave_Absent"), value=get_val("Leave_Absent")),
-            "Sick_Leave": st.text_area(label_with_avg_and_benchmark("Sick Leave", "Sick_Leave"), value=get_val("Sick_Leave")),
-            "Spot_Absent": st.text_area(label_with_avg_and_benchmark("Spot Absent", "Spot_Absent"), value=get_val("Spot_Absent")),
-            "Double_Duty": st.text_area(label_with_avg_and_benchmark("Double Duty", "Double_Duty"), value=get_val("Double_Duty")),
-            "Off_Cancellation": st.text_area(label_with_avg_and_benchmark("Off Cancellation", "Off_Cancellation"), value=get_val("Off_Cancellation")),
+        avg_str = f"{avg_val:.2f}%" if avg_val is not None else "—"
+        bench_str = f"{bench_val:.2f}%" if bench_val is not None else "—"
+
+        col_text, col_btn = st.columns([9, 1])
+
+        with col_text:
+            st.markdown(
+                f"""
+                **{label}**  
+                🟢 Avg for selected month: **{avg_str}** | 🎯 Benchmark: **{bench_str}**
+                """
+            )
+
+        with col_btn:
+            if st.button("🤖 AI", key=f"ai_{db_key}"):
+                with st.spinner("Generating AI insight..."):
+                    try:
+                        from_date = action_date.replace(day=1).isoformat()
+                        to_date = action_date.isoformat()
+
+                        summary = fetch_ai_summary(
+                            depot=selected_depot,
+                            kpi_name = BACKEND_KPI_NAMES[db_key],  # ✅ FIX
+                            from_date=from_date,
+                            to_date=to_date
+                        )
+
+                        st.session_state[f"text_{db_key}"] = summary
+                        st.rerun()
+
+                    except Exception:
+                        st.session_state[f"text_{db_key}"] = (
+                            "AI summary could not be generated."
+                        )
+                        st.rerun()
+
+        return st.text_area(
+            label="",
+            key=f"text_{db_key}",
+            height=90,
+            placeholder="Enter action plan or click 🤖 AI for suggestion..."
+        )
+
+
+
+    # Initialize AI text state (one-time)
+    for k in kpi_map.keys():
+        st.session_state.setdefault(f"text_{k}", get_val(k))
+
+    st.write("### ✍️ Enter Action Plan Details")
+
+    fields = {
+            "Weekly_Off_National_Off": kpi_with_ai(
+                "Weekly_Off_National_Off", "Weekly Off & National Off"
+            ),
+            "Special_Off_Night_Out_IC_Online": kpi_with_ai(
+                "Special_Off_Night_Out_IC_Online", "Special Off (Night Out IC & Online)"
+            ),
+            "Other_s": kpi_with_ai("Other_s", "Others"),
+            "Leave_Absent": kpi_with_ai("Leave_Absent", "Leave & Absent"),
+            "Sick_Leave": kpi_with_ai("Sick_Leave", "Sick Leave"),
+            "Spot_Absent": kpi_with_ai("Spot_Absent", "Spot Absent"),
+            "Double_Duty": kpi_with_ai("Double_Duty", "Double Duty"),
+            "Off_Cancellation": kpi_with_ai("Off_Cancellation", "Off Cancellation"),
+            "Driver_Schedule": kpi_with_ai("Driver_Schedule", "Driver/Schedule"),
         }
-
+    with st.form("entry_form", clear_on_submit=True):
         submitted = st.form_submit_button("💾 Save")
         if submitted:
             clean_data = {k: v.strip() for k, v in fields.items() if v and v.strip()}
@@ -338,6 +425,7 @@ def action():
                     "Spot Absent": r.Spot_Absent,
                     "Double Duty": r.Double_Duty,
                     "Off Cancellation": r.Off_Cancellation,
+                    "Driver/Schedule": r.Driver_Schedule
                 })
 
         # Convert to DataFrame and display
@@ -347,11 +435,10 @@ def action():
             df = df[["Date", "Quarter", "Weekly Off & National Off",
                      "Special Off (Night Out IC & Online)", "Others",
                      "Leave & Absent", "Sick Leave", "Spot Absent",
-                     "Double Duty", "Off Cancellation"]]
+                     "Double Duty", "Off Cancellation","Driver/Schedule"]]
             st.dataframe(df, use_container_width=True, hide_index=True)
         else:
             st.info("ℹ️ No previous Action Plan entries found for this year.")
 
     except Exception as e:
         st.error(f"Error fetching history: {e}")
-
